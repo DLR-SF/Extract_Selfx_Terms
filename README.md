@@ -1,8 +1,8 @@
 # Extract Self-X Terms from Papers
 
-This tool has been created to support research on self-x terms in the field of autonomous systems. It is supposed to automatize the exploration of self-x terms in a selection of papers from current research state to allow an in-depth analysis of common self-x terms, their references and meaning for system autonomy. 
+This tool has been created to support research on self-x terms in the field of autonomous systems. It is supposed to automatize the exploration of self-x terms in a selection of papers to allow an in-depth analysis of common self-x terms, their references and meaning for system autonomy. 
 
-It has been part of a research project that is related to the characterization of autonomous systems and similar system classes. Thereby this tool has been published to allow a validation of research results, but can also be used by others to extract self-x or other terms from a bunch of papers.
+It has been part of a research project that is related to the characterization of autonomous systems and similar system classes. Thereby this tool has been published to allow a validation of research results, but it can also be used by others to extract self-x or other terms from a bunch of papers.
 
 ## Table of contents
 - [Extract Self-X Terms from Papers](#extract-self-x-terms-from-papers)
@@ -26,14 +26,14 @@ It has been part of a research project that is related to the characterization o
 
 ## Overview
 
-The idea of the tool is to extract self-x terms from a bunch of papers. Thereby the tool iterates over [provided papers](#input-files), [applys a number of process steps](#features-of-the-tool) and creates a bunch of [output files](#output-files) for further analysis. The user can influence the tool behaviour using a [configuration file](/config.example.ini).
+The idea of the tool is to extract self-x terms from a bunch of papers. Thereby the tool iterates over [provided papers](#input-files), [applys a number of process steps](#process-steps) and creates a bunch of [output files](#output-files) for further analysis. The user can influence the tool behaviour using a [configuration file](/config.example.ini).
 
 
-![Overview tool](/images/overview_tool.png)
+![Overview tool](./images/overview_tool.png)
 
 ### Input Files
 
-The tool relys on a set of input files that are mandatory for a successful tool exection.
+The tool relys on a set of input files that are mandatory for a successful tool exection (see [Configuration](#configuration) and [Papers](#papers)).
 
 #### Configuration
 
@@ -51,7 +51,7 @@ Moreover a specific root folder for example *C:\\path\\to\\repo\\extract_selfx\\
 
 Following the example a folder structure like that can be used:
 ```
-- papers <-- root folder of papers under C:\path\to\repo\extract_selfx\
+- papers <-- root folder of papers here C:\path\to\repo\extract_selfx\papers
     - Autonomous Systems <-- subfolder 1
         - Paper1.pdf <-- papers
         - Paper2.pdf
@@ -100,9 +100,9 @@ cleaned_match = ''.join(match.lower().replace(" ", "").splitlines())
 #### 3) Apply exclusion criteria
 
 Next there are unwanted terms. These can be:
-1. **Excluded self-x terms**: There are some terms that should not be included into the collection of the tool. These can be for example general terms such as *self-x*, *self-chop* or *self-properties* that are no specific self-x characteristics. Use configuration property *excluded_selfx* to create a list of self-x-terms that should not be included.
-2. **Terms with not allowed endings**: As an addition to 1) terms can also be excluded by ending, so that unwanted word can be excluded without naming each term explicitely. These could be for example *software*, *device* or *material* so that the terms *self-software*, *self-device* and *self-material* will be ignored. Use configuration property *excluded_endings* to create a list of not allowed endings.
-3. **Too long words**: Sometimes spaces are not parsed correctly from pdf with the result that a term can include the next word or a whole line. To remove wrongly parsed elements, a maximum self-x term size can be configured in characters using property *max_length_term* (default 20).
+1. **Excluded self-x terms**: There are some terms that should not be included in the collection of the tool. These can be for example general terms such as *self-x*, *self-chop* or *self-properties* that are no specific self-x characteristics. Use configuration property *excluded_selfx* to create a list of self-x-terms that should not be included.
+2. **Terms with not allowed endings**: As an addition to 1) terms can also be excluded by ending, so that unwanted words can be excluded without naming each term explicitly. These could be for example *software*, *device* or *material* so that the terms *self-software*, *self-device* and *self-material* will be ignored. Use configuration property *excluded_endings* to create a list of not allowed endings.
+3. **Too long words**: Sometimes spaces are not parsed correctly from pdf with the result that a term can include the next word or a whole line. To remove wrongly parsed elements, a maximum self-x term size can be configured by specifying the allowed number of characters using property *max_length_term* (default 20).
 
 #### 4) Unify terms
 
@@ -116,8 +116,8 @@ To exclude uncommon terms that have only been named by single or only a few auth
 
 The tool produces three different output-files:
 1. **Self-X terms => Papers:** This output file contains a list of all self-x terms, the amount of papers which named them and the related filenames. Its name can be configured with property *output_selfx*.
-2. **Papers => Self-X terms:** This output file contains a list of all papers with matches, the number of self-x terms used and lists the self-x terms which have been found by this paper. The name of the output file can be configured with property *output_paper*.
-3. **Raw results:** All matches of the regular expression will be exportet into output file that has been configured in *output_raw*. It contains matches that have been extracted from pdf, cleaned and checked against exclude critera. In contrast to the other files the terms haven't been unified and include duplicates, so that a user can use this file to optimize parameters *unify_words_regex* and *unify_words_replacement* for unification. Moreover the length of each term has been calculated to support fine-tuning parameter *max_length_term* (maximum allowed length). 
+2. **Papers => Self-X terms:** This output file contains a list of all papers with matches, the number of self-x terms used and lists the self-x terms which have been found in this paper. The name of the output file can be configured with property *output_paper*.
+3. **Raw results:** All matches of the regular expression will be exported to output file that has been configured in *output_raw*. It contains matches that have been extracted from pdf, cleaned and checked against exclude critera. In contrast to the other files the terms haven't been unified and include duplicates, so that a user can use this file to optimize parameters *unify_words_regex* and *unify_words_replacement* for unification. Moreover the length of each term has been calculated to support fine-tuning parameter *max_length_term* (maximum allowed length). 
 
 
 You can define a root folder for output files by specifying *rootdir_output* in configuration. This will be the place where the output of the tool will be stored.
@@ -127,7 +127,7 @@ You can define a root folder for output files by specifying *rootdir_output* in 
 
 ### Environment
 
-To run the tool you will need a Python environment. The tool has been developed and tested on Windows OS with Python 3.10.4. It is possible that the tool also supports other Python versions, but it has not been tested against them.
+To run the tool you will need a Python environment. The tool has been developed and tested on Windows OS with Python 3.10.4. It is possible that the tool also supports other Python versions, but it has not been tested with them.
 
 ### Execute Tool
 To run the tool you need to:
