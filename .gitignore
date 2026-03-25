@@ -1,6 +1,8 @@
 papers
 selfx.log
 config.ini
+config_V1.ini
+config_V*.ini
 venv
 __pycache__
 output

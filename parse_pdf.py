@@ -9,7 +9,7 @@ Version: 1.0
 '''
 
 
-import PyPDF2
+import pypdf
 import re
 import os
 import pandas as pd
@@ -28,6 +28,7 @@ class Main():
 
         # -> internal counters & list
         self.list_of_files = []
+        self.list_of_system_classes = []
         self.list_of_selfx = []
         self.list_of_counters_uses_in_paper = []
         self.counter_all_selfx = 0
@@ -37,8 +38,12 @@ class Main():
         self.list_paper_with_matches = []
         self.list_paper_with_matches_selfx = []
         self.list_paper_with_matches_count_selfx = []
+        self.list_paper_all_system_classes = []
+        self.list_paper_all_system_classes_type = []
         self.list_raw_selfx = []
         self.list_raw_selfx_len = []
+        self.counter_not_parsable_pdf = 0
+        self.list_not_parsable_pdf = []
 
     '''
     Initialize configuration and provide it
@@ -156,11 +161,11 @@ class Main():
         # get index of word and check corresponding paper
         index = self.list_of_selfx.index(unified_match)
         papers = self.list_of_files[index]
-        paper_list = papers.split(", ")
+        paper_list = papers.split("; ")
 
         # if paper does not exists add paper to files and increase counter
         if file not in paper_list:
-            self.list_of_files[index] = papers + ", " + file
+            self.list_of_files[index] = papers + "; " + file
             new_file_count = self.list_of_counters_uses_in_paper[index] + 1
             self.list_of_counters_uses_in_paper[index] = new_file_count
 
@@ -179,6 +184,33 @@ class Main():
         self.counter_all_selfx_without_duplicates = self.counter_all_selfx_without_duplicates + 1
 
     '''
+    get system categories 
+    - Parse paper for system classes
+    '''
+    def get_system_category(self, text):
+        # search term for system category
+        # -> the term needs to be included followed by term 'system' or 'computing'
+        #    (the goal is to include system classes in general and not the adjectives only)
+        # -> for 'automated systems' sometimes the term 'automatic system' or 'automatic computing' is being used
+        search_term = r'((autonomous|autonomic|adaptive|organic) (computing|system))'
+        matches_search = re.findall(search_term, text, re.IGNORECASE)
+        # handle each match 
+        for match in matches_search:
+            # clean match
+            # use match[0] as the first match for the outer group
+            cleaned_match = match[0].lower().removesuffix(' computing').removesuffix(' system')
+            
+            # align automatic and automated
+            if cleaned_match == "automatic":
+                cleaned_match = "automated"
+
+            # add to list of not already in list 
+            if cleaned_match not in self.list_of_system_classes:
+                self.list_of_system_classes.append(cleaned_match)
+        
+        return self.list_of_system_classes 
+
+    '''
     handle a file
     - extract self-x term from pds    
     '''
@@ -188,10 +220,23 @@ class Main():
 
         # read paper and parse page by page
         filepath = os.path.join(root, file)
-        reader = PyPDF2.PdfReader(filepath)
+        reader = pypdf.PdfReader(filepath, strict=False)
+        counter_not_parsable_page = 0
         for page in reader.pages:
-            # extract text from page
-            text = page.extract_text() 
+            try:
+                # extract text from page
+                text = page.extract_text() 
+            except Exception:
+                # pdf not parsable -> skip and collect if 
+                # no page is parsable
+                counter_not_parsable_page += 1
+                if counter_not_parsable_page == len(reader.pages):
+                    self.counter_not_parsable_pdf += 1
+                    if file not in self.list_not_parsable_pdf:
+                        self.list_not_parsable_pdf.append(file)
+
+            # get system category for paper
+            list_of_system_classes = self.get_system_category(text)
 
             # search self-x in page via regex
             # -> Upper / Lowercase will be ignored
@@ -229,7 +274,7 @@ class Main():
                     # add to selfx string
                     string_selfx_matches = self.set_string_selfx_matches(string_selfx_matches, unified_match)
 
-        # parsed all pages of paper -> add string to list of matches for author
+        # parsed all pages of paper -> add string (self-x & category) to list of matches for author
         if string_selfx_matches != "":
             # count number of (distinct) self-x per author
             list_selfx_paper = string_selfx_matches.split(", ")
@@ -237,6 +282,24 @@ class Main():
 
             # add to list
             self.list_paper_with_matches_selfx.append(string_selfx_matches)
+
+            # add to list of system categories
+            list_of_system_classes_string = ', '.join(list_of_system_classes) 
+            self.list_paper_all_system_classes.append(list_of_system_classes_string)
+            logging.info("\n => Categories: {}".format(list_of_system_classes_string))
+            
+            # get system class type
+            if len(list_of_system_classes) > 1:
+                self.list_paper_all_system_classes_type.append("mixed")
+            elif len(list_of_system_classes) == 1:
+                self.list_paper_all_system_classes_type.append("single")
+            else:
+                self.list_paper_all_system_classes_type.append("none")
+
+            # empty list for the next paper
+            self.list_of_system_classes = []
+
+
 
     '''
     print statistics after termination
@@ -249,6 +312,8 @@ class Main():
         logging.info("- {} self-x matches unified and without duplicates".format(
             self.counter_all_selfx_without_duplicates))
         logging.info("- {} papers had matches".format(len(self.list_paper_with_matches)))
+        logging.info("- {} papers haven't been parsable automatically".format(self.counter_not_parsable_pdf))
+        logging.info("- List not parsable records: {}".format(self.list_not_parsable_pdf))
 
     '''
     write results to output files
@@ -285,13 +350,15 @@ class Main():
     '''
     def save_results_as_df(self):
         # save selfx data as df 
-        self.df = pd.DataFrame({'selfx': self.list_of_selfx, 'file_counts': self.list_of_counters_uses_in_paper,
+        self.df = pd.DataFrame({'selfx': self.list_of_selfx, 'file_counts': self.list_of_counters_uses_in_paper, 
                                 'file': self.list_of_files})
         self.df.file_counts = self.df.file_counts.astype(int)
 
         # save papers and selfx as df 
         self.df_selfx = pd.DataFrame({'papers': self.list_paper_with_matches, 
                                       'selfx_count': self.list_paper_with_matches_count_selfx,
+                                      'system_classes': self.list_paper_all_system_classes,
+                                      'system_class_type': self.list_paper_all_system_classes_type,
                                       'matches': self.list_paper_with_matches_selfx})
 
         # save raw results as df
